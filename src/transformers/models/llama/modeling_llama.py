@@ -557,7 +557,7 @@ class LlamaSdpaAttention(LlamaAttention):
         bsz, q_len, _ = hidden_states.size()
 
         if hasattr(self, 'qkv_proj'):
-            query_states, key_states, value_states = torch.split(self.qkv_proj(hidden_states), (4096, 4096, 4096), dim=-2)
+            query_states, key_states, value_states = torch.split(self.qkv_proj(hidden_states), (4096, 4096, 4096), dim=-1)
         else:
             query_states = self.q_proj(hidden_states)
             key_states = self.k_proj(hidden_states)
