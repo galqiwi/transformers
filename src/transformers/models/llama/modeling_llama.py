@@ -556,9 +556,8 @@ class LlamaSdpaAttention(LlamaAttention):
 
         bsz, q_len, _ = hidden_states.size()
 
-        query_states = self.q_proj(hidden_states)
-        key_states = self.k_proj(hidden_states)
-        value_states = self.v_proj(hidden_states)
+        assert hasattr(self, 'qkv_proj')
+        query_states, key_states, value_states = torch.split(self.qkv_proj(hidden_states), (4096, 4096, 4096), dim=-2)
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
