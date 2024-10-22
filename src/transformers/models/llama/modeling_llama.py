@@ -239,6 +239,7 @@ class LlamaMLP(nn.Module):
 
     def forward(self, x):
         if self.config.pretraining_tp > 1:
+            assert False
             slice = self.intermediate_size // self.config.pretraining_tp
             gate_proj_slices = self.gate_proj.weight.split(slice, dim=0)
             up_proj_slices = self.up_proj.weight.split(slice, dim=0)
@@ -255,7 +256,12 @@ class LlamaMLP(nn.Module):
             ]
             down_proj = sum(down_proj)
         else:
-            down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+            if hasattr(self, 'upgate_proj'):
+                up_proj, gate_proj = torch.split(self.upgate_proj(x), (11008, 11008), dim=-1)
+            else:
+                up_proj = self.up_proj(x)
+                gate_proj = self.gate_proj(x)
+            down_proj = self.down_proj(self.act_fn(gate_proj) * up_proj)
 
         return down_proj
 
