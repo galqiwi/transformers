@@ -109,6 +109,7 @@ class HiggsHfQuantizer(HfQuantizer):
         """
         Quantizes weights into weight and weight_scale
         """
+        print(param_value.keys())
         flute_dict = quantize_with_higgs(
             param_value.to('cuda'),
             self.quantization_config.bits,
