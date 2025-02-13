@@ -131,6 +131,8 @@ class HiggsHfQuantizer(HfQuantizer):
             else:
                 raise ValueError(f"Unexpected key {key} in module {module}")
 
+        module = module.cpu()
+
         if unexpected_keys is not None and param_name in unexpected_keys:
             unexpected_keys.remove(param_name)
 
