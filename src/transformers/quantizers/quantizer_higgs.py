@@ -122,20 +122,20 @@ class HiggsHfQuantizer(HfQuantizer):
         module_name = ".".join(param_name.split(".")[:-1])
         for key, value in flute_dict.items():
             if key in module._parameters:
-                print(1, key, value.device, value.shape)
-                module._parameters[key] = torch.nn.Parameter(value, requires_grad=False)
+                # print(1, key, value.device, value.shape)
+                module._parameters[key] = torch.nn.Parameter(value.cpu(), requires_grad=False)
             elif key in module._buffers:
-                print(2, key, value.device, value.shape)
-                module._buffers[key] = torch.nn.Buffer(value)
+                # print(2, key, value.device, value.shape)
+                module._buffers[key] = torch.nn.Buffer(value.cpu())
             elif key == "tune_metadata":
-                print(3, key, value)
+                # print(3, key, value)
                 module.tune_metadata = value
                 self.quantization_config.tune_metadata[module_name] = value.to_dict()
             else:
                 raise ValueError(f"Unexpected key {key} in module {module}")
 
         # print(module)
-        module = module.cpu()
+        # module = module.cpu()
 
         if unexpected_keys is not None and param_name in unexpected_keys:
             unexpected_keys.remove(param_name)
