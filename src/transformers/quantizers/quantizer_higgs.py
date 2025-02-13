@@ -110,12 +110,12 @@ class HiggsHfQuantizer(HfQuantizer):
         Quantizes weights into weight and weight_scale
         """
         flute_dict = quantize_with_higgs(
-            param_value.to(target_device),
+            param_value.to('cuda'),
             self.quantization_config.bits,
             self.quantization_config.p,
             self.quantization_config.group_size,
             self.quantization_config.hadamard_size,
-        )
+        ).to(target_device)
         del param_value
 
         module, _ = get_module_from_name(model, param_name)
