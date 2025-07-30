@@ -1556,10 +1556,12 @@ class TinyQuantConfig(QuantizationConfigMixin):
     def __init__(
         self,
         tinyquant_method,
+        layers = None,
         **kwargs,
     ):
         self.quant_method = QuantizationMethod.TINYQUANT
         self.tinyquant_method = tinyquant_method
+        self.layers = layers
         self.kwargs = kwargs
 
     def post_init(self):
