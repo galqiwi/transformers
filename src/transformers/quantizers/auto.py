@@ -29,6 +29,7 @@ from ..utils.quantization_config import (
     FPQuantConfig,
     GPTQConfig,
     HiggsConfig,
+    TinyQuantConfig,
     HqqConfig,
     Mxfp4Config,
     QuantizationConfigMixin,
@@ -53,6 +54,7 @@ from .quantizer_finegrained_fp8 import FineGrainedFP8HfQuantizer
 from .quantizer_fp_quant import FPQuantHfQuantizer
 from .quantizer_gptq import GptqHfQuantizer
 from .quantizer_higgs import HiggsHfQuantizer
+from .quantizer_tinyquant import TinyQuantHfQuantizer
 from .quantizer_hqq import HqqHfQuantizer
 from .quantizer_mxfp4 import Mxfp4HfQuantizer
 from .quantizer_quanto import QuantoHfQuantizer
@@ -83,6 +85,7 @@ AUTO_QUANTIZER_MAPPING = {
     "fp8": FineGrainedFP8HfQuantizer,
     "auto-round": AutoRoundQuantizer,
     "mxfp4": Mxfp4HfQuantizer,
+    "tinyquant": TinyQuantHfQuantizer,
 }
 
 AUTO_QUANTIZATION_CONFIG_MAPPING = {
@@ -99,6 +102,7 @@ AUTO_QUANTIZATION_CONFIG_MAPPING = {
     "compressed-tensors": CompressedTensorsConfig,
     "fbgemm_fp8": FbgemmFp8Config,
     "higgs": HiggsConfig,
+    "tinyquant": TinyQuantConfig,
     "torchao": TorchAoConfig,
     "bitnet": BitNetQuantConfig,
     "vptq": VptqConfig,

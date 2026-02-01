@@ -51,6 +51,7 @@ class QuantizationMethod(str, Enum):
     QUANTO = "quanto"
     EETQ = "eetq"
     HIGGS = "higgs"
+    TINYQUANT = "tinyquant"
     HQQ = "hqq"
     COMPRESSED_TENSORS = "compressed-tensors"
     FBGEMM_FP8 = "fbgemm_fp8"
@@ -1354,6 +1355,23 @@ class HiggsConfig(QuantizationConfigMixin):
             raise ValueError("group_size must be 64, 128, or 256")
         if self.hadamard_size % self.group_size != 0:
             raise ValueError("hadamard_size must be divisible by group_size")
+
+
+@dataclass
+class TinyQuantConfig(QuantizationConfigMixin):
+    def __init__(
+        self,
+        tinyquant_method,
+        layers = None,
+        **kwargs,
+    ):
+        self.quant_method = QuantizationMethod.TINYQUANT
+        self.tinyquant_method = tinyquant_method
+        self.layers = layers
+        self.kwargs = kwargs
+
+    def post_init(self):
+        pass
 
 
 @dataclass
