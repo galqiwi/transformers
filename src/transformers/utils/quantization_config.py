@@ -1359,19 +1359,26 @@ class HiggsConfig(QuantizationConfigMixin):
 
 @dataclass
 class TinyQuantConfig(QuantizationConfigMixin):
+
     def __init__(
         self,
-        tinyquant_method,
-        layers = None,
+        tinyquant_method: str,
+        layers: str | None = None,
+        modules_to_not_convert: list[str] | None = None,
         **kwargs,
     ):
         self.quant_method = QuantizationMethod.TINYQUANT
         self.tinyquant_method = tinyquant_method
         self.layers = layers
+        self.modules_to_not_convert = modules_to_not_convert
         self.kwargs = kwargs
+        self.post_init()
 
     def post_init(self):
-        pass
+        if not self.tinyquant_method:
+            raise ValueError("`tinyquant_method` must be specified for TinyQuantConfig")
+        if self.layers is None:
+            self.layers = "*"
 
 
 @dataclass

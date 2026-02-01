@@ -11,124 +11,84 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Optional
+
 import fnmatch
-from torch import nn
+from typing import TYPE_CHECKING
+
+from .base import HfQuantizer
+from .quantizers_utils import get_module_from_name
+
+from ..utils import is_torch_available, logging
+from ..utils.quantization_config import QuantizationConfigMixin
+
 
 if TYPE_CHECKING:
     from ..modeling_utils import PreTrainedModel
 
-from tinyquant.quantized_linear import QuantizedLinear
-from tinyquant.quantizer import quantize
-
-from .base import HfQuantizer
-
-from ..utils import is_torch_available
-from ..utils.quantization_config import QuantizationConfigMixin
-
-
 if is_torch_available():
     import torch
+
+    from ..core_model_loading import WeightConverter
+
+logger = logging.get_logger(__name__)
 
 
 class TinyQuantHfQuantizer(HfQuantizer):
 
     requires_calibration = False
-    requires_parameters_quantization = True
 
     def __init__(self, quantization_config: QuantizationConfigMixin, **kwargs):
         super().__init__(quantization_config, **kwargs)
-        self.quantization_config = quantization_config
 
-    def validate_environment(self, device_map, **kwargs):
-        pass
+    def validate_environment(self, *args, **kwargs):
+        try:
+            from tinyquant.quantized_linear import QuantizedLinear  # noqa: F401
+            from tinyquant.quantizer import quantize  # noqa: F401
+        except ImportError:
+            raise ImportError(
+                "Using `tinyquant` quantization requires the tinyquant library. "
+                "Please install it with: `pip install tinyquant`"
+            )
 
     def _process_model_before_weight_loading(
-            self,
-            model: "PreTrainedModel",
-            **kwargs,
+        self,
+        model: "PreTrainedModel",
+        **kwargs,
     ):
         if not self.pre_quantized:
             return
 
-        linear_paths = []
+        from ..integrations.tinyquant import replace_with_tinyquant_linear
 
-        for module_path, module in model.named_modules():
-            if not self._should_quantize_layer(model, module_path):
-                continue
-            linear_paths.append(module_path)
+        self.modules_to_not_convert = self.get_modules_to_not_convert(
+            model,
+            self.quantization_config.modules_to_not_convert,
+            model._keep_in_fp32_modules,
+        )
 
-        for linear_path in linear_paths:
-            parent_path, linear_name = linear_path.rsplit('.', 1)
+        replace_with_tinyquant_linear(
+            model,
+            quantization_config=self.quantization_config,
+            modules_to_not_convert=self.modules_to_not_convert,
+        )
 
-            parent = model.get_submodule(parent_path)
-            setattr(parent, linear_name, QuantizedLinear.empty())
+    def _process_model_after_weight_loading(self, model: "PreTrainedModel", **kwargs):
+        return model
 
-    def create_quantized_param(
-        self,
-        model: "PreTrainedModel",
-        param_value: "torch.Tensor",
-        param_name: str,
-        target_device: "torch.device",
-        state_dict: dict[str, Any],
-        unexpected_keys: Optional[list[str]] = None,
-    ):
-        if self.pre_quantized:
-            self._load_param_into_quantized_linear(model, param_value, param_name)
-        else:
-            self._quantize_weight_into_quantized_linear(model, param_value, param_name)
+    def param_needs_quantization(self, model: "PreTrainedModel", param_name: str, **kwargs) -> bool:
+        from tinyquant.quantized_linear import QuantizedLinear
 
-    def _quantize_weight_into_quantized_linear(self, model: "PreTrainedModel", param_value: "torch.Tensor", param_name: str):
-        module_path, tensor_name = param_name.rsplit(".", 1)
+        module, tensor_name = get_module_from_name(model, param_name)
 
-        parent_path, module_name = module_path.rsplit(".", 1)
-        parent = model.get_submodule(parent_path)
+        if isinstance(module, QuantizedLinear):
+            return True
 
-        assert tensor_name in ["weight", "bias"]
+        if isinstance(module, torch.nn.Linear) and tensor_name == "weight":
+            module_path = param_name.rsplit(".", 1)[0]
+            layers_pattern = self.quantization_config.layers or "*"
+            return fnmatch.fnmatch(module_path, layers_pattern)
 
-        parent_path, module_name = module_path.rsplit(".", 1)
-
-        current_module = getattr(parent, module_name)
-
-        if tensor_name == "bias":
-            if isinstance(current_module, QuantizedLinear):
-                current_module.tq_tensors["bias"] = nn.Parameter(param_value, requires_grad=False)
-            else:
-                current_module.bias = nn.Parameter(param_value, requires_grad=False)
-        
-        else:
-            existing_bias = None
-            if isinstance(current_module, torch.nn.Linear) and current_module.bias is not None:
-                existing_bias = current_module.bias.data
-
-            quantized_layer = quantize(
-                self.quantization_config.tinyquant_method, 
-                weight=param_value, 
-                bias=existing_bias,
-                **self.quantization_config.kwargs
-            )
-            setattr(parent, module_name, quantized_layer)
-
-    def _load_param_into_quantized_linear(self, model: "PreTrainedModel", param_value: "torch.Tensor", param_name: str):
-        parent_path, _, key = param_name.rsplit(".", 2)
-        parent = model.get_submodule(parent_path)
-        assert isinstance(parent, QuantizedLinear)
-        parent.weights_dict[key] = torch.nn.Parameter(param_value, requires_grad=False)
-
-    def update_expected_keys(self, model, expected_keys: list[str], loaded_keys: list[str]) -> list[str]:
-
-        if not self.pre_quantized:
-            return expected_keys
-
-        for module_path, module in model.named_modules():
-            if not self._should_quantize_layer(model, module_path):
-                continue
-            assert isinstance(module, QuantizedLinear)
-            module_keys = [key.rsplit('.')[-1] for key in loaded_keys if key.startswith(module_path)]
-            for key in module_keys:
-                module.weights_dict[key] = torch.nn.Parameter(torch.empty([]), requires_grad=False)
-
-        return loaded_keys
+        return False
 
     @property
     def is_trainable(self) -> bool:
@@ -137,32 +97,20 @@ class TinyQuantHfQuantizer(HfQuantizer):
     def is_serializable(self, safe_serialization=None):
         return True
 
-    def check_quantized_param(
-        self,
-        model: "PreTrainedModel",
-        param_value: "torch.Tensor",
-        param_name: str,
-        state_dict: dict[str, Any],
-        **kwargs,
-    ) -> bool:
-        for module_path, module in model.named_modules():
-            if not self._should_quantize_layer(model, module_path):
-                continue
-            if param_name.startswith(module_path):
-                return True
-        return False
+    def get_quantize_ops(self):
+        from ..integrations.tinyquant import TinyQuantQuantize
 
-    def _should_quantize_layer(self, model: "PreTrainedModel", module_path: str):
+        return TinyQuantQuantize(self)
 
-        module = model.get_submodule(module_path)
+    def get_weight_conversions(self):
+        from ..integrations.tinyquant import TinyQuantDeserialize
 
-        if isinstance(module, QuantizedLinear):
-            return True
-
-        if isinstance(module, torch.nn.Linear):
-            return fnmatch.fnmatch(module_path, self.quantization_config.layers)
-
-        return False
-
-    def _process_model_after_weight_loading(self, model, **kwargs):
-        pass
+        if self.pre_quantized:
+            return [
+                WeightConverter(
+                    source_patterns=["tq_tensors.*", "weights_dict.*"],
+                    target_patterns="",
+                    operations=[TinyQuantDeserialize(self)],
+                )
+            ]
+        return []
