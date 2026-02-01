@@ -53,7 +53,8 @@ from .quantizer_fbgemm_fp8 import FbgemmFp8HfQuantizer
 from .quantizer_finegrained_fp8 import FineGrainedFP8HfQuantizer
 from .quantizer_fp_quant import FPQuantHfQuantizer
 from .quantizer_gptq import GptqHfQuantizer
-from .quantizer_higgs import HiggsHfQuantizer, TinyQuantHfQuantizer
+from .quantizer_higgs import HiggsHfQuantizer
+from .quantizer_tinyquant import TinyQuantHfQuantizer
 from .quantizer_hqq import HqqHfQuantizer
 from .quantizer_quanto import QuantoHfQuantizer
 from .quantizer_quark import QuarkHfQuantizer
