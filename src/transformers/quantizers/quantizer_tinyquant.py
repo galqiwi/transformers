@@ -113,7 +113,7 @@ class TinyQuantHfQuantizer(HfQuantizer):
         parent_path, _, key = param_name.rsplit(".", 2)
         parent = model.get_submodule(parent_path)
         assert isinstance(parent, QuantizedLinear)
-        parent.weights_dict[key] = torch.nn.Parameter(param_value, requires_grad=False)
+        parent.tq_tensors[key] = nn.Parameter(param_value, requires_grad=False)
 
     def update_expected_keys(self, model, expected_keys: list[str], loaded_keys: list[str]) -> list[str]:
 
@@ -126,7 +126,7 @@ class TinyQuantHfQuantizer(HfQuantizer):
             assert isinstance(module, QuantizedLinear)
             module_keys = [key.rsplit('.')[-1] for key in loaded_keys if key.startswith(module_path)]
             for key in module_keys:
-                module.weights_dict[key] = torch.nn.Parameter(torch.empty([]), requires_grad=False)
+                module.tq_tensors[key] = nn.Parameter(torch.empty([]), requires_grad=False)
 
         return loaded_keys
 
