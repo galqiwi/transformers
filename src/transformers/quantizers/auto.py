@@ -36,6 +36,7 @@ from ..utils.quantization_config import (
     QuantoConfig,
     QuarkConfig,
     SpQRConfig,
+    TinyQuantConfig,
     TorchAoConfig,
     VptqConfig,
 )
@@ -58,6 +59,7 @@ from .quantizer_mxfp4 import Mxfp4HfQuantizer
 from .quantizer_quanto import QuantoHfQuantizer
 from .quantizer_quark import QuarkHfQuantizer
 from .quantizer_spqr import SpQRHfQuantizer
+from .quantizer_tinyquant import TinyQuantHfQuantizer
 from .quantizer_torchao import TorchAoHfQuantizer
 from .quantizer_vptq import VptqHfQuantizer
 
@@ -83,6 +85,7 @@ AUTO_QUANTIZER_MAPPING = {
     "fp8": FineGrainedFP8HfQuantizer,
     "auto-round": AutoRoundQuantizer,
     "mxfp4": Mxfp4HfQuantizer,
+    "tinyquant": TinyQuantHfQuantizer,
 }
 
 AUTO_QUANTIZATION_CONFIG_MAPPING = {
@@ -106,6 +109,7 @@ AUTO_QUANTIZATION_CONFIG_MAPPING = {
     "fp8": FineGrainedFP8Config,
     "auto-round": AutoRoundConfig,
     "mxfp4": Mxfp4Config,
+    "tinyquant": TinyQuantConfig,
 }
 
 logger = logging.get_logger(__name__)

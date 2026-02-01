@@ -62,6 +62,7 @@ class QuantizationMethod(str, Enum):
     FPQUANT = "fp_quant"
     AUTOROUND = "auto-round"
     MXFP4 = "mxfp4"
+    TINYQUANT = "tinyquant"
 
 
 class AwqFormat(str, Enum):
@@ -1923,3 +1924,25 @@ class Mxfp4Config(QuantizationConfigMixin):
             `dict[str, Any]`: Dictionary of all the attributes that make up this configuration instance.
         """
         return {"quant_method": self.quant_method, "modules_to_not_convert": self.modules_to_not_convert}
+
+
+@dataclass
+class TinyQuantConfig(QuantizationConfigMixin):
+    def __init__(
+        self,
+        tinyquant_method: str = "nf4",
+        layers: str = "model.layers.*",
+        **kwargs,
+    ):
+        self.quant_method = QuantizationMethod.TINYQUANT
+        self.tinyquant_method = tinyquant_method
+        self.layers = layers
+        self.kwargs = kwargs
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "quant_method": self.quant_method,
+            "tinyquant_method": self.tinyquant_method,
+            "layers": self.layers,
+            "kwargs": self.kwargs,
+        }

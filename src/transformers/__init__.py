@@ -259,6 +259,7 @@ _import_structure = {
         "QuantoConfig",
         "QuarkConfig",
         "SpQRConfig",
+        "TinyQuantConfig",
         "TorchAoConfig",
         "VptqConfig",
     ],
@@ -761,6 +762,7 @@ if TYPE_CHECKING:
     from .utils.quantization_config import QuantoConfig as QuantoConfig
     from .utils.quantization_config import QuarkConfig as QuarkConfig
     from .utils.quantization_config import SpQRConfig as SpQRConfig
+    from .utils.quantization_config import TinyQuantConfig as TinyQuantConfig
     from .utils.quantization_config import TorchAoConfig as TorchAoConfig
     from .utils.quantization_config import VptqConfig as VptqConfig
     from .video_processing_utils import BaseVideoProcessor as BaseVideoProcessor
